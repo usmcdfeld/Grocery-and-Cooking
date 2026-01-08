@@ -1,27 +1,73 @@
-<section class="card">
-  <h2>Add recipe</h2>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Recipe Picker → Shopping List</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Recipes</h1>
+      <p>Add recipes, pick a menu, get a shopping list.</p>
+    </header>
 
-  <div class="row">
-    <input id="recipeName" type="text" placeholder="Recipe name (e.g., Chicken Curry)" />
-    <input id="servings" type="number" min="1" placeholder="Servings (optional)" />
-  </div>
+    <main class="grid">
+      <!-- Entry-based recipe creation -->
+      <section class="card">
+        <h2>Add recipe</h2>
 
-  <h3>Ingredients</h3>
+        <div class="row">
+          <input id="recipeName" type="text" placeholder="Recipe name (e.g., Chicken Curry)" />
+          <input id="servings" type="number" min="1" placeholder="Servings (optional)" />
+        </div>
 
-  <div class="row">
-    <input id="ingItem" type="text" placeholder="Item (e.g., Onion)" />
-    <input id="ingQty" type="number" step="any" placeholder="Qty (e.g., 2)" />
-    <input id="ingUnit" type="text" placeholder="Unit (e.g., pcs, g, ml)" />
-    <button id="addIngBtn">Add</button>
-  </div>
+        <h3>Ingredients</h3>
 
-  <div id="ingTable" class="list"></div>
+        <div class="row">
+          <input id="ingItem" type="text" placeholder="Item (e.g., Onion)" />
+          <input id="ingQty" type="number" step="any" placeholder="Qty (e.g., 2)" />
+          <input id="ingUnit" type="text" placeholder="Unit (e.g., pcs, g, ml)" />
+          <button id="addIngBtn" type="button">Add</button>
+        </div>
 
-  <div class="row">
-    <button id="saveRecipeBtn" class="primary">Save recipe</button>
-    <button id="resetRecipeBtn">Reset</button>
-    <button id="clearAllBtn" class="danger">Clear all stored recipes</button>
-  </div>
+        <div id="ingTable" class="list"></div>
 
-  <p class="muted">Recipes are stored locally in your browser.</p>
-</section>
+        <div class="row">
+          <button id="saveRecipeBtn" type="button" class="primary">Save recipe</button>
+          <button id="resetRecipeBtn" type="button">Reset</button>
+          <button id="clearAllBtn" type="button" class="danger">Clear all stored recipes</button>
+        </div>
+
+        <p class="muted">Recipes are stored locally in your browser (no backend).</p>
+      </section>
+
+      <!-- Recipe selection -->
+      <section class="card">
+        <h2>Recipe menu</h2>
+        <div class="row">
+          <input id="search" type="search" placeholder="Search recipes…" />
+          <button id="selectAllBtn" type="button">Select all</button>
+          <button id="selectNoneBtn" type="button">Select none</button>
+        </div>
+        <div id="recipeList" class="list"></div>
+      </section>
+
+      <!-- Shopping list -->
+      <section class="card">
+        <h2>Shopping list</h2>
+        <div class="row">
+          <button id="generateBtn" type="button" class="primary">Generate list</button>
+          <button id="copyBtn" type="button">Copy</button>
+        </div>
+        <pre id="shoppingList" class="output">(select recipes, then generate)</pre>
+      </section>
+    </main>
+
+    <footer class="muted">
+      Tip: keep ingredient names consistent (e.g., “Tomato” vs “Tomatoes”) for best merging.
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
