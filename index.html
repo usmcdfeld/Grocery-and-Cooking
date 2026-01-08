@@ -1,0 +1,27 @@
+<section class="card">
+  <h2>Add recipe</h2>
+
+  <div class="row">
+    <input id="recipeName" type="text" placeholder="Recipe name (e.g., Chicken Curry)" />
+    <input id="servings" type="number" min="1" placeholder="Servings (optional)" />
+  </div>
+
+  <h3>Ingredients</h3>
+
+  <div class="row">
+    <input id="ingItem" type="text" placeholder="Item (e.g., Onion)" />
+    <input id="ingQty" type="number" step="any" placeholder="Qty (e.g., 2)" />
+    <input id="ingUnit" type="text" placeholder="Unit (e.g., pcs, g, ml)" />
+    <button id="addIngBtn">Add</button>
+  </div>
+
+  <div id="ingTable" class="list"></div>
+
+  <div class="row">
+    <button id="saveRecipeBtn" class="primary">Save recipe</button>
+    <button id="resetRecipeBtn">Reset</button>
+    <button id="clearAllBtn" class="danger">Clear all stored recipes</button>
+  </div>
+
+  <p class="muted">Recipes are stored locally in your browser.</p>
+</section>
