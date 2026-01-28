@@ -9,11 +9,11 @@
   <body>
     <header>
       <h1>Recipes</h1>
-      <p>Add recipes, pick a menu, get a shopping list.</p>
+      <p>Add recipes, pick a menu, get a shopping list. Export/import as JSON.</p>
     </header>
 
     <main class="grid">
-      <!-- Entry-based recipe creation -->
+      <!-- Entry-based recipe creation + import/export -->
       <section class="card">
         <h2>Add recipe</h2>
 
@@ -36,10 +36,26 @@
         <div class="row">
           <button id="saveRecipeBtn" type="button" class="primary">Save recipe</button>
           <button id="resetRecipeBtn" type="button">Reset</button>
+        </div>
+
+        <hr />
+
+        <h2>Backup</h2>
+        <div class="row">
+          <button id="exportBtn" type="button">Export JSON</button>
+
+          <label class="fileLikeBtn">
+            Import JSON
+            <input id="importInput" type="file" accept="application/json" multiple />
+          </label>
+
           <button id="clearAllBtn" type="button" class="danger">Clear all stored recipes</button>
         </div>
 
-        <p class="muted">Recipes are stored locally in your browser (no backend).</p>
+        <p class="muted">
+          Stored locally in your browser. Export makes a backup you can re-import later.
+          Import accepts either a full backup or individual recipe JSON files.
+        </p>
       </section>
 
       <!-- Recipe selection -->
