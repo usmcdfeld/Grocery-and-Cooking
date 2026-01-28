@@ -1,4 +1,4 @@
-const STORAGE_KEY = "recipes.v2";
+const STORAGE_KEY = "recipes.v3";
 
 const recipeListEl = document.getElementById("recipeList");
 const shoppingListEl = document.getElementById("shoppingList");
@@ -20,7 +20,13 @@ const ingTableEl = document.getElementById("ingTable");
 const saveRecipeBtn = document.getElementById("saveRecipeBtn");
 const resetRecipeBtn = document.getElementById("resetRecipeBtn");
 
+// Import/Export
+const exportBtn = document.getElementById("exportBtn");
+const importInput = document.getElementById("importInput");
+
 let draftIngredients = [];
+
+/* ---------------- Storage ---------------- */
 
 function loadRecipes() {
   try {
@@ -38,6 +44,10 @@ function uid() {
   return crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random();
 }
 
+function normalizeName(s) {
+  return (s || "").trim().toLowerCase();
+}
+
 function normalizeItemName(s) {
   return (s || "").trim().toLowerCase();
 }
@@ -47,7 +57,7 @@ function toNumberOrNull(v) {
   return Number.isFinite(n) ? n : null;
 }
 
-/* ---------- Draft ingredient entry ---------- */
+/* ---------------- Draft ingredient entry ---------------- */
 
 function renderDraftIngredients() {
   ingTableEl.innerHTML = "";
@@ -129,14 +139,20 @@ saveRecipeBtn.addEventListener("click", () => {
 
   const servings = servingsEl.value === "" ? null : toNumberOrNull(servingsEl.value);
 
-  const recipes = loadRecipes();
-  recipes.push({
+  const newRecipe = {
     id: uid(),
     name,
     servings,
     ingredients: draftIngredients.map(({ id, ...rest }) => rest),
     createdAt: new Date().toISOString(),
-  });
+    updatedAt: new Date().toISOString(),
+  };
+
+  const recipes = loadRecipes();
+  // Replace by name if it already exists (avoid duplicates)
+  const idx = recipes.findIndex((r) => normalizeName(r.name) === normalizeName(newRecipe.name));
+  if (idx >= 0) recipes[idx] = { ...recipes[idx], ...newRecipe, id: recipes[idx].id };
+  else recipes.push(newRecipe);
 
   saveRecipes(recipes);
 
@@ -150,7 +166,7 @@ saveRecipeBtn.addEventListener("click", () => {
   shoppingListEl.textContent = "(select recipes, then generate)";
 });
 
-/* ---------- Recipe menu ---------- */
+/* ---------------- Recipe menu ---------------- */
 
 function renderRecipes() {
   const recipes = loadRecipes();
@@ -184,7 +200,7 @@ function getSelectedRecipeIds() {
   );
 }
 
-/* ---------- Shopping list ---------- */
+/* ---------------- Shopping list ---------------- */
 
 function buildShoppingList(selectedIds) {
   const recipes = loadRecipes();
@@ -207,7 +223,6 @@ function buildShoppingList(selectedIds) {
         merged.set(key, { item, unit, qty });
       } else {
         const curr = merged.get(key);
-        // Only sum if both quantities are numeric
         if (curr.qty != null && qty != null) curr.qty += qty;
         else if (curr.qty == null && qty != null) curr.qty = qty;
       }
@@ -247,7 +262,148 @@ copyBtn.addEventListener("click", async () => {
   }
 });
 
-/* ---------- Bulk actions ---------- */
+/* ---------------- Import / Export ---------------- */
+
+exportBtn.addEventListener("click", () => {
+  const recipes = loadRecipes();
+
+  const payload = {
+    app: "recipe-picker-shopping-list",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    recipes,
+  };
+
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `recipes-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+importInput.addEventListener("change", async () => {
+  const files = [...(importInput.files || [])];
+  if (files.length === 0) return;
+
+  try {
+    const importedRecipes = [];
+
+    for (const file of files) {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      // Accept either:
+      // 1) full backup object: { app, version, exportedAt, recipes: [...] }
+      // 2) array of recipes: [ ... ]
+      // 3) single recipe object: { name, ingredients: [...] }
+      const recipes = extractRecipesFromUnknownJson(data);
+
+      for (const r of recipes) {
+        const cleaned = sanitizeRecipe(r);
+        if (cleaned) importedRecipes.push(cleaned);
+      }
+    }
+
+    if (importedRecipes.length === 0) {
+      alert("No valid recipes found in the selected file(s).");
+      importInput.value = "";
+      return;
+    }
+
+    const merged = mergeByName(loadRecipes(), importedRecipes);
+    saveRecipes(merged);
+
+    renderRecipes();
+    alert(`Imported ${importedRecipes.length} recipe(s).`);
+  } catch (e) {
+    console.error(e);
+    alert("Import failed: invalid JSON or unsupported format.");
+  } finally {
+    importInput.value = "";
+  }
+});
+
+function extractRecipesFromUnknownJson(data) {
+  if (!data) return [];
+
+  // Full backup format
+  if (Array.isArray(data.recipes)) return data.recipes;
+
+  // Direct array of recipes
+  if (Array.isArray(data)) return data;
+
+  // Single recipe object
+  if (typeof data === "object" && data.name && Array.isArray(data.ingredients)) return [data];
+
+  return [];
+}
+
+function sanitizeRecipe(r) {
+  if (!r || typeof r !== "object") return null;
+
+  const name = (r.name || "").trim();
+  if (!name) return null;
+
+  const ingredientsRaw = Array.isArray(r.ingredients) ? r.ingredients : [];
+  const ingredients = ingredientsRaw
+    .map((ing) => {
+      if (!ing || typeof ing !== "object") return null;
+      const item = (ing.item || "").trim();
+      if (!item) return null;
+
+      const unit = (ing.unit || "").trim();
+      const qty = typeof ing.qty === "number" ? ing.qty : (ing.qty === "" || ing.qty == null ? null : Number(ing.qty));
+      const qtyClean = Number.isFinite(qty) ? qty : null;
+
+      return { item, qty: qtyClean, unit };
+    })
+    .filter(Boolean);
+
+  if (ingredients.length === 0) return null;
+
+  const servings =
+    typeof r.servings === "number"
+      ? r.servings
+      : r.servings == null || r.servings === ""
+      ? null
+      : toNumberOrNull(r.servings);
+
+  const now = new Date().toISOString();
+
+  return {
+    id: r.id || uid(),
+    name,
+    servings: Number.isFinite(servings) ? servings : null,
+    ingredients,
+    createdAt: r.createdAt || now,
+    updatedAt: now,
+  };
+}
+
+function mergeByName(existing, incoming) {
+  // Replace existing by name (case-insensitive). Otherwise append.
+  const map = new Map(existing.map((r) => [normalizeName(r.name), r]));
+
+  for (const r of incoming) {
+    const key = normalizeName(r.name);
+    if (map.has(key)) {
+      const prev = map.get(key);
+      map.set(key, { ...prev, ...r, id: prev.id, updatedAt: new Date().toISOString() });
+    } else {
+      map.set(key, r);
+    }
+  }
+
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/* ---------------- Bulk actions ---------------- */
 
 searchEl.addEventListener("input", renderRecipes);
 
@@ -266,10 +422,9 @@ clearAllBtn.addEventListener("click", () => {
   shoppingListEl.textContent = "(select recipes, then generate)";
 });
 
-/* ---------- Helpers ---------- */
+/* ---------------- Helpers ---------------- */
 
 function escapeHtml(str) {
-  // Minimal escaping to prevent HTML injection in innerHTML usage
   return String(str)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -278,6 +433,6 @@ function escapeHtml(str) {
     .replaceAll("'", "&#039;");
 }
 
-/* ---------- Init ---------- */
+/* ---------------- Init ---------------- */
 renderDraftIngredients();
 renderRecipes();
