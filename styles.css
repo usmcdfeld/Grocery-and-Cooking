@@ -19,6 +19,12 @@ p {
   margin: 0;
 }
 
+hr {
+  border: 0;
+  border-top: 1px solid #eee;
+  margin: 14px 0;
+}
+
 .grid {
   max-width: 1100px;
   margin: 0 auto;
@@ -108,4 +114,21 @@ input[type="number"] {
   margin-left: auto;
   font-size: 0.85rem;
   color: #666;
+}
+
+/* Make file input look like a button */
+.fileLikeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ddd;
+  background: #fff;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.fileLikeBtn input[type="file"] {
+  display: none;
 }
